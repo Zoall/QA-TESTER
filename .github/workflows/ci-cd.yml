@@ -1,53 +1,59 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
   push:
     branches:
-      - test-branch  # Trigger the pipeline when pushing to 'test-branch'
+      - test-branch
   pull_request:
     branches:
-      - test-branch  # Trigger the pipeline on pull request to 'test-branch'
+      - test-branch
 
 jobs:
   test:
-    runs-on: ubuntu-latest  # Run on the latest Ubuntu environment
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3  # Checkout the code from your repository
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'  # Specify the Python version to use
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt  # Install dependencies listed in requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Set up Django database
-      run: |
-        python manage.py migrate  # Apply migrations to set up the database
-
-    - name: Run tests
-      run: |
-        pytest  # Run the tests with pytest
+      - name: Run tests
+        run: |
+          pytest --maxfail=1 --disable-warnings -q
 
   deploy:
-    runs-on: ubuntu-latest  # Run on the latest Ubuntu environment
-    needs: test  # This job will run after the 'test' job is successful
+    runs-on: ubuntu-latest
+    needs: test
+    if: success() # Only runs if tests are successful
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3  # Checkout the code from your repository
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Push changes to main
-      run: |
-        git config --global user.email "github-actions@github.com"
-        git config --global user.name "GitHub Actions"
-        git checkout main
-        git merge test-branch  # Merge changes from test-branch to main
-        git push origin main  # Push changes to the main branch
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use GitHub's default token for authentication
+      - name: Fetch all branches
+        run: git fetch --all
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Checkout main branch
+        run: git checkout main
+
+      - name: Merge test-branch into main
+        run: git merge test-branch
+
+      - name: Push changes to main
+        run: git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
