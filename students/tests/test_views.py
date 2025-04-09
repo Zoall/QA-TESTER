@@ -105,3 +105,13 @@ def test_create_student_empty_name(client):
     })
     assert response.status_code == 200
     assert not Student.objects.filter(age=25).exists()
+
+
+@pytest.mark.django_db
+def test_create_student_invalid_age(client):
+    response = client.post(reverse('student_create'), {
+        'name': 'Invalid Age',
+        'age': -5
+    })
+    assert response.status_code == 200
+    assert not Student.objects.filter(name='Invalid Age').exists()
